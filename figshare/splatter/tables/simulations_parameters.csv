@@ -1,0 +1,4 @@
+"name","template","Group1Batch1","Group1Batch2","Group2Batch1","Group2Batch2","bath.facLoc","dropout.type","dropout.midrange","dropout.shape","DE.facLoc"
+"authors","Authors",105,0,105,0,0.1,"none","3.2","-0.46","0.1 / 0.1"
+"vanilla","Vanilla",105,0,105,0,0.1,"none","0","-1","0.1"
+"authors_highES","Authors",105,0,105,0,0.1,"none","3.2","-0.46","1.5"
