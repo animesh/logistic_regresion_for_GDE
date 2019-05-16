@@ -1,6 +1,6 @@
-# Package requirements
+# Workflow requirements
 
-## Package Installation
+## Dependencies installation
 
 To install all the requisite packages used herein, please run the following:
 
@@ -22,7 +22,7 @@ devtools::install_github("thomasp85/patchwork")
 
 ```
 
-## Package Loading
+## Dependencies loading
 
 To ensure all packages load, please run:
 
