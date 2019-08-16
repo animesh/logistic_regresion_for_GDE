@@ -13,10 +13,11 @@ The order in which to recapitulate the manuscript's analysis is as follows:
 2. Run data processing scripts:
 ./figshare/EB/simulations_analysis_clean.R (simulated datasets)
 ./figshare/EB/shuffling_analysis.R (empirical datasets)
+./figshare/EB/splatEstimate.R (new simulations)
 
 
 3. Run the adapted analysis from Ntranos et al for the analysis of the embryo dataset
-./NYMP_2018/embryo/0_embryo_seurat.R
+./NYMP_2018/embryo/0_embryo_seurat_EB.R
 ./NYMP_2018/embryo/1_embryo_scde.R
 ./NYMP_2018/embryo/2_embryo_LR.R
 ./NYMP_2018/embryo/3_plot_figures_EB.R 
