@@ -34,6 +34,8 @@
 
     params_dir="./rds"
     dir.create(params_dir,showWarnings=FALSE)
+    dir.create(file.path(splatter_dir,"input"),showWarnings=FALSE)
+    dir.create(file.path(splatter_dir,"pre_input"),showWarnings=FALSE)
 
     if(FALSE){
         library(TENxPBMCData)
@@ -53,6 +55,7 @@
         counts <- as.matrix(counts(data))
         saveRDS(counts,file=file.path(splatter_dir,"input","TM_thymus.Rds"))
 
+	## Requires Seurat v3
         library(Seurat)
         data1k_v3 <- Read10X(file.path(splatter_dir,"pre_input/pbmc_1k_v3_filtered_feature_bc_matrix/filtered_feature_bc_matrix")) ## Source: https://support.10xgenomics.com/single-cell-gene-expression/datasets/3.0.0/pbmc_1k_v3
         counts <- as.matrix(data1k_v3)
@@ -76,10 +79,6 @@
                 file=file.path(params_dir,paste0("splatEstimate_",basename(file)))
             )
             
-            ## splatEstMean: rate and shape parameters for gamma ditrib
-            ## splatEstLib: Fit normal or lognormal distribution for cellular library sizes
-            ## splatEstOutlier: spot outlier genes
-            ## splatEstBCV
         }
     }
 
