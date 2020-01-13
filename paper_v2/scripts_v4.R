@@ -7,6 +7,7 @@ library(RColorBrewer)
 library(ggpubr)
 library(gplots)
 library(tools)
+library(grid)
 source("../wrappers.R")
 
 options("mc.cores"=8L)
@@ -21,8 +22,8 @@ tp=function(hexcol,tp="44"){
 ####################
 
 ## Load results of the CD45 analysis, based on a script adapted from https://github.com/pachterlab/NYMP_2018/blob/master/10x_example-logR/10x_example_logR-TCC_notebook.ipynb
-load("../NYMP_2018/10x_example-logR/rdata/Fig2.RData")
-load("../NYMP_2018/10x_example-logR/rdata/Fig2_allcells.RData")
+load("~/ebecht_working/logistic_regression/NYMP_2018/10x_example-logR/rdata/Fig2.RData")
+load("~/ebecht_working/logistic_regression/NYMP_2018/10x_example-logR/rdata/Fig2_allcells.RData")
 
 ## Reshape data
 ps=lapply(ps,t)
@@ -113,7 +114,7 @@ dev.off()
 ####################
 
 ## Load results. The script that generated them is in logistic_regression/figshare/EB/simulations_analysis_clean.R
-splatter_dir="../figshare/splatter/"
+splatter_dir="~/ebecht_working/logistic_regression/figshare/splatter/"
 file=file.path(splatter_dir,"rds","simulations_pre_degs.rds")
 ## files=list.files(file.path(splatter_dir,"rds/"),full.names=FALSE,include.dirs=FALSE)
 ## files=files[!grepl("simulations_pre_degs.rds",files)]
@@ -129,20 +130,45 @@ simulations=sapply(
 )
 
 ## Extract DEG results and harmonize names. MAST/LR/AOV are statistical methods, TX or GN is about whether the analysis is done at the transcript or gene level, and sidak/multiv means that pvalues are aggregated from transcript to gene levels, univ means univariate analysis
-simulations=lapply(
+## simulations=lapply(
+##     simulations,
+##     function(x){
+##         degs=x$degs
+##         x$degs_formatted=list(
+##             mast_tx_sidak=degs$mast_tpm$gn,
+##             mast_tx_univ=degs$mast_tpm$tx,
+##             mast_gn_univ=degs$mast_unaggregated_gn_tpm$gn,
+##             lr_tx_multiv=degs$lr_tpm,
+##             lr_tx_univ=degs$lr_unaggregated_tpm,
+##             lr_gn_univ=degs$lr_unaggregated_gn_tpm,
+##             aov_tx_sidak=degs$aov_tpm$gn,
+##             aov_tx_univ=degs$aov_tpm$tx,
+##             aov_gn_univ=degs$aov_unaggregated_gn_tpm$gn
+##         )
+##         x
+##     }
+## )
+
+simulations = lapply(
     simulations,
     function(x){
-        degs=x$degs
-        x$degs_formatted=list(
+        degs = x$degs
+        x$degs_formatted = list(
             mast_tx_sidak=degs$mast_tpm$gn,
             mast_tx_univ=degs$mast_tpm$tx,
             mast_gn_univ=degs$mast_unaggregated_gn_tpm$gn,
             lr_tx_multiv=degs$lr_tpm,
             lr_tx_univ=degs$lr_unaggregated_tpm,
             lr_gn_univ=degs$lr_unaggregated_gn_tpm,
-            aov_tx_sidak=degs$aov_tpm$gn,
-            aov_tx_univ=degs$aov_tpm$tx,
-            aov_gn_univ=degs$aov_unaggregated_gn_tpm$gn
+            edgeR_tx_sidak=degs$edgeRQLF_CDR$gn,
+            edgeR_tx_univ=degs$edgeRQLF_CDR$tx,
+            edgeR_gn_univ=degs$edgeRQLF_CDR_gn,
+            limma_tx_sidak=degs$limmatrend$gn,
+            limma_tx_univ=degs$limmatrend$tx,
+            limma_gn_univ=degs$limmatrend_gn,
+            DESeq2_tx_sidak=degs$DESeq2$gn,
+            DESeq2_tx_univ=degs$DESeq2$tx,
+            DESeq2_gn_univ=degs$DESeq2_gn
         )
         x
     }
@@ -165,9 +191,22 @@ all_sim=sapply(
         TN_max=sum(!de_genes)
 
         ## Reshape data
-        df=cbind(lr_tx_multiv=x$degs_formatted$lr_tx_multiv[g],mast_tx_sidak=x$degs_formatted$mast_tx_sidak[g],mast_gn_univ=x$degs_formatted$mast_gn_univ[g],DE=de_genes[g])
+        df=cbind(
+            lr_tx_multiv=x$degs_formatted$lr_tx_multiv[g],
+            lr_gn_univ=x$degs_formatted$lr_gn_univ[g],
+            mast_tx_sidak=x$degs_formatted$mast_tx_sidak[g],
+            mast_gn_univ=x$degs_formatted$mast_gn_univ[g],
+            edgeR_tx_sidak=x$degs_formatted$edgeR_tx_sidak[g],
+            edgeR_gn_univ=x$degs_formatted$edgeR_gn_univ[g],
+            limma_tx_sidak=x$degs_formatted$limma_tx_sidak[g],
+            limma_gn_univ=x$degs_formatted$limma_gn_univ[g],
+            DESeq2_tx_sidak=x$degs_formatted$DESeq2_tx_sidak[g],
+            DESeq2_gn_univ=x$degs_formatted$DESeq2_gn_univ[g],
+            DE=de_genes[g]
+        )
         df=as.data.table(df)
-        df=melt(df,measure.vars=c("lr_tx_multiv","mast_tx_sidak","mast_gn_univ"),id.vars="DE")
+        ##df=melt(df,measure.vars=c("lr_tx_multiv","mast_tx_sidak","mast_gn_univ"),id.vars="DE")
+        df=melt(df,measure.vars=setdiff(colnames(df), "DE"),id.vars="DE")
         colnames(df)=c("DE","method","p")
         df[,simulation:=rep(x$name,nrow(df))]
         df=split(df,as.character(df$method))
@@ -193,49 +232,20 @@ all_sim=sapply(
 all_sim=do.call(rbind,all_sim)
 all_sim[,method:=as.character(all_sim$method)]
 
-## We remove the two simulations where we used the "dropout.type="group"" argument in splatter (see https://rdrr.io/github/Oshlack/splatter/man/SplatParams.html). The reason is that this simulates differential dropout across celltypes (so for each gene, cells of celltype A will have e.g. less dropout than cells of celltype B). This is not considered differential expression, although it arguably is. It therefore impacts TPR and FPR in a way we disagree with.
-all_sim=subset(all_sim,!grepl("dropout",all_sim$simulation))
-
 ## Choose colors and linetypes
 methods=unique(all_sim$method)
-colors=c(
-    lr_tx_multiv="#A6CEE3",
-    mast_tx_sidak="#1F78B4",
-    lr_gn_univ="#B2DF8A",
-    mast_gn_univ="#33A02C"
+## colors=c(
+##     lr_tx_multiv="#A6CEE3",
+##     mast_tx_sidak="#1F78B4",
+##     lr_gn_univ="#B2DF8A",
+##     mast_gn_univ="#33A02C"
+## )
+colors = setNames(
+    brewer.pal(length(methods), "Paired")[c(7:8,3:4,9:10,1:2,5:6)],
+    methods
 )
+
 linetype=setNames(rep("solid",length(methods)),methods)
-
-## For each method, interpolate TPR(p) and FPR(p) to a common set of p-values, so that we can plot method A versus method B
-interp_points=seq(0,1,by=0.0001)
-all_sim_interp=split(all_sim,paste0(all_sim$simulation,all_sim$method))
-all_sim_interp=lapply(all_sim_interp,function(x){
-    res=data.table(p=interp_points)
-    res[,TPR:=approx(x=x$p,y=x$TPR,xout=interp_points)$y] ## Where the interpolation happens
-    res[,FPR:=approx(x=x$p,y=x$FPR,xout=interp_points)$y]
-    res[p==0,c("TPR","FPR"):=list(0,0)] ## Add points (0,0) and (1,1), which are mathematically guaranteed. Avoid edge cases in the approx() function (interpolating outside of data range)
-    res[p==1,c("TPR","FPR"):=list(1,1)]
-    res[,method:=rep(x$method[1],nrow(res))]
-    res[,simulation:=rep(x$simulation[1],nrow(res))]
-    res
-})
-
-## Set-up MAST-Sidak vs mLR direct comparison on interpolated data
-m1="mast_tx_sidak"
-m2="lr_tx_multiv"
-all_sim_interp=do.call(rbind,all_sim_interp)
-all_sim_interp=split(all_sim_interp,all_sim_interp$simulation)
-all_sim_interp=lapply(all_sim_interp,function(x){
-    d1=x[method==m1,]
-    d2=x[method==m2,]
-    colnames(d1)[!colnames(d1)%in%c("p","simulation")]=paste0(colnames(d1)[!colnames(d1)%in%c("p","simulation")],".",m1)
-    colnames(d2)[!colnames(d2)%in%c("p","simulation")]=paste0(colnames(d2)[!colnames(d2)%in%c("p","simulation")],".",m2)
-    d1=d1[,grep("method.",colnames(d1),value=TRUE):=NULL]
-    d2=d2[,grep("method.",colnames(d2),value=TRUE):=NULL]
-    merge(d1,d2,by=c("p","simulation"))
-})
-
-all_sim_interp=do.call(rbind,all_sim_interp)
 
 ####################
 ## Panel D): Simulations, sensitivity vs nominal FDR (q-value) threshold
@@ -253,14 +263,21 @@ df_tmp=do.call(rbind,lapply(split(df_tmp,paste0(df_tmp$simulation,df_tmp$method)
 ####################
 
 df3=subset(all_sim, simulation %in% simulations_selected & method %in% c("mast_tx_sidak", "mast_gn_univ"))
+df3 = subset(all_sim, simulation %in% "authors_highES")
 df3ag=do.call(rbind,lapply(split(df3,paste0(df3$simulation,df3$method)),function(x){
     x=subset(x,q<0.05)
     x[which.max(q),]
 }))
 groups=with(df3ag,paste(simulation,method))
-linetypes=setNames(ifelse(grepl("mast_gn_univ",groups),"dashed","solid"),groups)
+## linetypes=setNames(ifelse(grepl("mast_gn_univ",groups),"dashed","solid"),groups)
+linetypes = setNames(rep("solid",length(methods)),methods)
 
-p3=ggplot(data=df3,aes(x=FPR,y=TPR,linetype=paste(simulation,method),colour=paste(simulation,method),group=paste(simulation,method))) +
+aucs_1a = df3[, list(auc = auc(TPR, FPR)), by = c("method", "simulation")]
+file=file.path("./graphs/table_1a.csv")
+write.csv(aucs_1a, file)
+
+
+p3=ggplot(data=df3,aes(x=FPR,y=TPR,linetype=method,colour=method,group=method)) +
     geom_path() +
     xlab("FPR") +
     ylab("TPR") +
@@ -269,12 +286,12 @@ p3=ggplot(data=df3,aes(x=FPR,y=TPR,linetype=paste(simulation,method),colour=past
     ylim(0,1) +
     geom_abline(intercept=0,slope=1,linetype="dashed") +
     ## ggtitle("Simulations: ROC curve") +
-    theme(legend.position = "none") +
-    scale_colour_manual(values=colours_selected) +
+    ##theme(legend.position = "none") +
+    scale_colour_manual(values=colors) +
     scale_linetype_manual(values=linetypes) +
-    geom_point(data=df3ag,aes(x=FPR,y=TPR,colour=paste(simulation,method),group=paste(simulation,method)))
+    geom_point(data=df3ag,aes(x=FPR,y=TPR,colour=method,group=method))
 
-pdf("./graphs/1A.pdf",height=3.5,width=3.5)
+pdf("./graphs/1A.pdf",height=3.5,width=5)
 p3
 dev.off()
 
@@ -287,18 +304,31 @@ file=file.path(splatter_dir,"shuffle_rds","neg.rds")
 data=readRDS(file)
 
 ## We use the analysis where transcripts present in less than 20% of the cells are filtered out
-cutoff=0.2
+cutoff=as.character(0.2)
 ## Load data and harmonize
 df=lapply(
     names(data),
     function(ds){
-        df=data.table(
-            lr_noCDR_noscrbl=data[[ds]]$degs[[as.character(cutoff)]]$lr_noCDR_noscrbl$gn,
-            mast_CDR_noscrbl=data[[ds]]$degs[[as.character(cutoff)]]$mast_CDR_noscrbl$gn,
-            lr_noCDR_scrbl=data[[ds]]$degs[[as.character(cutoff)]]$lr_noCDR_scrbl$gn,
-            mast_CDR_scrbl=data[[ds]]$degs[[as.character(cutoff)]]$mast_CDR_scrbl$gn
-        )
+        ## df=data.table(
+        ##     lr_noCDR_noscrbl=data[[ds]]$degs[[as.character(cutoff)]]$lr_noCDR_noscrbl$gn,
+        ##     mast_CDR_noscrbl=data[[ds]]$degs[[as.character(cutoff)]]$mast_CDR_noscrbl$gn,
+        ##     lr_noCDR_scrbl=data[[ds]]$degs[[as.character(cutoff)]]$lr_noCDR_scrbl$gn,
+        ##     mast_CDR_scrbl=data[[ds]]$degs[[as.character(cutoff)]]$mast_CDR_scrbl$gn
+        ## )
 
+        df=data.table(
+            lr_noscrbl=data[[ds]]$degs[[cutoff]]$lr_noCDR_noscrbl,
+            lr_scrbl=data[[ds]]$degs[[cutoff]]$lr_noCDR_scrbl,
+            mast_CDR_noscrbl=data[[ds]]$degs[[cutoff]]$mast_CDR_noscrbl$gn,
+            mast_CDR_scrbl=data[[ds]]$degs[[cutoff]]$mast_CDR_scrbl$gn,
+            edgeR_noscrbl=data[[ds]]$degs[[cutoff]]$edgeRQLF_CDR_noscrbl$gn,
+            edgeR_scrbl=data[[ds]]$degs[[cutoff]]$edgeRQLF_CDR_scrbl$gn,
+            limma_noscrbl=data[[ds]]$degs[[cutoff]]$limmatrend_noscrbl$gn,
+            limma_scrbl=data[[ds]]$degs[[cutoff]]$limmatrend_scrbl$gn,
+            DESeq2_noscrbl=data[[ds]]$degs[[cutoff]]$DESeq2_noscrbl$gn,
+            DESeq2_scrbl=data[[ds]]$degs[[cutoff]]$DESeq2_scrbl$gn
+        )
+        
         ## Compute freq. of discovery
         df=suppressWarnings(melt.data.table(df))
         colnames(df)=c("method","p")
@@ -320,46 +350,113 @@ df=lapply(
         df
     }
 )
+
+power_1f = lapply(
+        df,
+        function(x){
+            sapply(
+                x,
+                function(y){
+                    suppressWarnings(y[q<0.05, max(n)])
+                }
+            )
+        }
+)
+names(power_1f) = sapply(
+    df,
+    function(x){
+        x[[1]]$dataset[1]
+    }
+)
+fdr_1g = sapply(
+    power_1f,
+    function(x){
+        x[grepl("_scrbl", names(x))]
+    }
+)
+fdr_1g[!is.finite(fdr_1g)] = 0
+power_1f = sapply(
+    power_1f,
+    function(x){
+        x[grepl("_noscrbl", names(x))]
+    }
+)
+file=file.path("./graphs/table_1f.csv")
+write.csv(power_1f, file)
+file=file.path("./graphs/table_1g.csv")
+write.csv(fdr_1g, file)
+
 df=do.call(rbind,lapply(df,function(x){do.call(rbind,x)}))
 
+write.table(power_1f, file 
+
 ## Define colors and linetypes
-methods=apply(expand.grid(c("mast_CDR","lr_noCDR"),c("_scrbl","_noscrbl")),1,paste0,collapse="")
-colors=apply(unique(df[,c("dataset","method")]),1,paste,collapse=" ")
-colors=colors[grepl("_noscrbl",colors)]
-colors=setNames(brewer.pal(10,"Paired")[1:6],colors)
+datasets = unique(df$dataset)
+methods=apply(expand.grid(c("mast_CDR","lr", "edgeR", "limma", "DESeq2"),c("_scrbl","_noscrbl")),1,paste0,collapse="")
+colors = brewer.pal(5, "Set1")
+colors = setNames(colors, methods[grepl("_noscrbl", methods)])
+## colors=apply(unique(df[,c("dataset","method")]),1,paste,collapse=" ")
+## colors=colors[grepl("_noscrbl",colors)]
+## colors=setNames(do.call(c,lapply(split(brewer.pal(10,"Paired")[1:6], rep(1:3, each = 2)),function(x){colorRampPalette(x)(5)})), colors)
 colors_scrbl=colors
 names(colors_scrbl)=sub("noscrbl","scrbl",names(colors_scrbl))
 
-## Plot
-p3=ggplot(data=df[grepl("_noscrbl",method),],aes(x=q, y=n, colour=paste(dataset,method),group=paste(dataset,method))) +
-    geom_vline(xintercept=0.05,linetype="dashed") +
-    geom_path(size=0.5) +
-    theme_bw() +
-    ggtitle("Real datasets: power analysis") +
-    xlab("nominal FDR") +
-    ylab("Fraction of discoveries") +
-    scale_colour_manual(values=colors) +
-    theme(legend.position="none")
+dataset_names = c(
+    "Authors' 10X data" = "Ntranos",
+    "Petropoulos et al's data" = "Petropoulos",
+    "GSE64016" = "Leng",
+)
 
-p4=ggplot(data=df[grepl("_scrbl",method),],aes(x=q, y=n, colour=paste(dataset,method),group=paste(dataset,method))) +
-    geom_vline(xintercept=0.05,linetype="dashed") +
-    geom_path(size=0.5) +
-    theme_bw() +
-    ggtitle("Real datasets, scrambled response: power analysis") +
-    xlab("nominal FDR") +
-    ylab("Fraction of discoveries") +
-    scale_colour_manual(values=colors_scrbl)
+## Plot
+p3 = lapply(
+    datasets,
+    function(dataset){
+        envir = environment()
+        ggplot(data=df[grepl("_noscrbl",method) & dataset == get("dataset", envir = envir),],aes(x=q, y=n, colour=method, group=paste(dataset,method))) +
+            geom_vline(xintercept=0.05,linetype="dashed") +
+            geom_path(size=0.5) +
+            theme_bw() +
+            ggtitle(dataset) +
+            xlab("Nominal FDR") +
+            ylab("Fraction of discoveries") +
+            scale_colour_manual(values=colors) +
+            theme(legend.position="none")
+    }
+)
+
+p4 = lapply(
+    datasets,
+    function(dataset){
+        envir = environment()
+        ggplot(data=df[grepl("_scrbl",method) & dataset == get("dataset", envir = envir),],aes(x=q, y=n, colour=method, group=paste(dataset,method))) +
+            geom_vline(xintercept=0.05,linetype="dashed") +
+            geom_path(size=0.5) +
+            theme_bw() +
+            ggtitle(dataset) +
+            xlab("Nominal FDR") +
+            ylab("Fraction of discoveries") +
+            scale_colour_manual(values=colors_scrbl) +
+            theme(legend.position="none")
+    }
+)
 
 file="./graphs/Panel_ROCs.pdf"
-pdf(file=file,width=17/5*3,height=3.5)
-p3+p4 + plot_layout(nrow=1)
+pdf(file=file,width=17/5*3,height=3.5*2)
+ggarrange(plotlist = c(p3, p4), nrow = 2, ncol = 3)
+dev.off()
+
+pdf(file=sub(".pdf","_legend.pdf", file, fixed = TRUE), ,width=2,height=2)
+par(mar = c(0, 0, 0, 0))
+plot.new()
+ys = seq(0.8, 0.2, length.out = 5)
+text(x = 0.2, y = ys, labels = sub("_noscrbl", "", names(colors)), pos = 4)
+segments(x0 = 0.18, x1 = 0.1, y0 = ys, col = colors, lwd = 4)
 dev.off()
 
 ####################
 ## Correlation of transcripts in simulations vs real data
 ####################
 
-## Parse simulated and experimental datasets
 data_correlation=simulations[paste0(c("authors","authors_highES","vanilla"),"_degs.rds")]
 data_correlation=lapply(
     data_correlation,
@@ -383,8 +480,6 @@ data_correlation=c(
         }
     )
 )
-
-## Compute within-gene and random transcript correlations
 data_correlation=lapply(
     data_correlation,
     function(x){
@@ -409,7 +504,6 @@ data_correlation=lapply(
     }
 )
 
-## Plot
 n=ceiling(length(data_correlation)/2)
 png(file.path("./graphs/","Sup Fig 4_sqrt.png"),res=300,height=n*1000,width=2000)
 layout(matrix(nrow=n,ncol=2,data=1:(3*n),byrow=FALSE))
@@ -424,6 +518,8 @@ lapply(
         densities_inter$x=c(-1,densities_inter$x,1)
         densities_intra$y=c(0,densities_intra$y,0)
         densities_inter$y=c(0,densities_inter$y,0)
+        ## densities_intra$y=log10(1+densities_intra$y)
+        ## densities_inter$y=log10(1+densities_inter$y)
         densities_intra$y=sqrt(densities_intra$y)
         densities_inter$y=sqrt(densities_inter$y)
         ylim=c(0,max(c(densities_intra$y,densities_inter$y)))
@@ -465,13 +561,14 @@ dev.off()
 
 simulations=readRDS("../figshare/splatEstimate/rds/simulations.rds")
 names_map=c(
+    "TM_thymus"="Tabula Muris - (10x v2)",
     "10xv2PBMC4k"="PBMC4k (10X v2)",
     "10xv3PBMC1k"="PBMC1k (10X v3)",
-    "TM_thymus"="Tabula Muris - Thymus"
+    "EMTAB3929"="Petropoulos (Smart-Seq2)"
 )
 
 plots=lapply(
-    simulations,
+    simulations[names(names_map)],
     function(x){
         
         ## Compute which genes are differentially expressed (legacy, now also available in rowData(x$splat))
@@ -487,41 +584,114 @@ plots=lapply(
         rowData(x$splat)=cbind(rowData(x$splat),de_gene=de_genes[rowData(x$splat)$gene_ensembl])
         rowData(x$splat_gn)=cbind(rowData(x$splat_gn),de_genes=de_genes[rowData(x$splat_gn)$gene_ensembl])
 
-        ## Compute TPR, FPR...
-        fdrs=sapply(c("mast_tx_univ","mast_tx_sidak","lr_tx_univ","lr_tx_multiv"),function(y){
-            if(grepl("ENSG",names(x$degs_formatted[[y]])[1])){
-                true_DE=de_genes
-            } else if (grepl("ENST",names(x$degs_formatted[[y]])[1])){
-                true_DE=de_transcripts
+        ## Generate 5-panel figures with 1) empirical FDR vs TPR [as per Nnatros et al], 2) FPR vs TPR [ROC curve], 3) nominal FDR (p-values from each GDE method + p.adjust(.,method="fdr") versus empirical FDR, 4) nominal FDR vs FPR and 5) nominal FDR vs sensitivity 
+        methods = c(
+            "mast_tx_sidak",
+            "lr_tx_multiv",
+            "edgercdr_tx_sidak",
+            "limma_tx_sidak",
+            "deseq2_tx_sidak"
+        )
+        methods = rev(methods)
+        
+        fdrs=sapply(
+            methods
+           ,function(y){
+               if(grepl("ENSG",names(x$degs_formatted[[y]])[1])){
+                   true_DE=de_genes
+               } else if (grepl("ENST",names(x$degs_formatted[[y]])[1])){
+                   true_DE=de_transcripts
+               }
+               calculate_fdr(true_DE=true_DE[names(x$degs_formatted[[y]])],pvalues=x$degs_formatted[[y]],title=y)
+           },simplify=FALSE)
+
+        fdrs <- lapply(
+            1:length(fdrs),
+            function(y){
+                data.frame(
+                    sensitivity=fdrs[[y]]$sen,
+                    actual_FDR=fdrs[[y]]$fdr,
+                    FalsePositiveRate = fdrs[[y]]$FalsePositiveRate,
+                    nominal_FDR=p.adjust(fdrs[[y]]$pvalues,method="fdr"),
+                    Method = names(fdrs)[y])
             }
-            calculate_fdr(true_DE=true_DE[names(x$degs_formatted[[y]])],pvalues=x$degs_formatted[[y]],title=y)
-        },simplify=FALSE)
-        fdrs <- lapply(1:length(fdrs), function(y) data.frame(sensitivity=fdrs[[y]]$sen, actual_FDR=fdrs[[y]]$fdr, FalsePositiveRate = fdrs[[y]]$FalsePositiveRate, nominal_FDR=p.adjust(fdrs[[y]]$pvalues,method="fdr"),Method = names(fdrs)[y]))
+        )
         fdrs <- do.call(rbind, fdrs)
 
+        aucs = sapply(
+            split(fdrs, fdrs$Method),
+            function(df){
+                ## i = 2:nrow(df) - 1
+                ## heights = (df[i, "sensitivity"]+df[i+1, "sensitivity"])/2
+                ## widths = df[i+1, "FalsePositiveRate"]-df[i, "FalsePositiveRate"]
+                ## sum(heights*widths)
+                auc(TPR = df[, "sensitivity"], df[, "FalsePositiveRate"])
+            }
+        )
+        aucs_FPR10 = sapply(
+            split(fdrs, fdrs$Method),
+            function(df){
+                df = df[df$FalsePositiveRate<0.1, ]
+                auc(TPR = df[, "sensitivity"], df[, "FalsePositiveRate"])*10
+            }
+        )
         
-        ## Set up ROC curves
-        colors=setNames(makeTransparent(rep(brewer.pal(3,"Set1"),each=2),123),unique(fdrs$Method))
-        linetype=setNames(rep(c("solid","dashed","dotted")[1:2],3),unique(fdrs$Method))
-        p2 <- ggplot(data = fdrs, aes(x = FalsePositiveRate , y = sensitivity, colour=Method, linetype=Method)) +
+        ## colors=setNames(makeTransparent(rep(brewer.pal(length(methods)/2,"Set1"),each=2),123),unique(fdrs$Method))
+        ## linetype=setNames(rep(c("solid","dashed","dotted")[1:2],length(methods)/2),unique(fdrs$Method))
+        colors=setNames(makeTransparent(rev(rep(brewer.pal(length(methods),"Set1"),each=1)),255),unique(fdrs$Method))
+        linetype=setNames(rep(c("solid","dashed","dotted")[1],length(methods)),unique(fdrs$Method))
+
+        p2 <- ggplot(
+            data = fdrs,
+            aes(x = FalsePositiveRate , y = sensitivity, colour=Method, linetype=Method)
+        ) +
             scale_colour_manual(values=colors) +
             scale_linetype_manual(values=linetype) +
-            ## scale_x_sqrt() +
-            geom_path() +
-            geom_abline(intercept=0,slope=1,linetype="solid",col="gray") +
+            geom_path(size = .5) +
+            ## geom_abline(intercept=0,slope=1,linetype="solid",col="gray") +
             theme_bw(12) +
             coord_fixed() +
+            scale_x_sqrt() +
             ggtitle(names_map[x$name]) +
             theme(plot.title = element_text(hjust = 0.5)) +
             xlab("FPR") +
             ylab("TPR")
-        p2        
+
+        ## zoomtheme <- theme(legend.position="none", axis.line=element_blank(),axis.text.x=element_blank(),
+        ##     axis.text.y=element_blank(),axis.ticks=element_blank(),
+        ##     axis.title.x=element_blank(),axis.title.y=element_blank(),
+        ##     panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        ##     panel.background = element_rect(color='red', fill="white"),
+        ##     plot.margin = unit(c(0,0,-6,-6),"mm"))
+
+        ## p2_zm = p2 + zoomtheme
+        ## vp = viewport(1, 0, adjust = c())
+        list(plot = p2, aucs = aucs, aucs_FPR10 = aucs_FPR10)
     }
 )
 
-## Plot ROC curves
-file=file.path("./graphs/1E_new_simulations.svg")
+file=file.path("./graphs/1E_new_simulations.pdf")
 library(RSvgDevice)
-devSVG(file,height=3.5,width=8)
-ggarrange(plotlist=plots,ncol=3,common.legend=TRUE)
+pdf(file,height=3.5,width=8*4/3)
+ggarrange(plotlist=lapply(plots, function(x){x[["plot"]]}),ncol=4,common.legend=TRUE)
 dev.off()
+
+file=file.path("./graphs/table_1e.csv")
+aucs_1e = do.call(
+    rbind,
+    lapply(
+        plots,
+        function(x){
+            df1 = as.data.frame(as.list(x[["aucs"]]))
+            df2 = as.data.frame(as.list(x[["aucs_FPR10"]]))
+            colnames(df1) = paste("AUC", colnames(df1))
+            colnames(df2) = paste("AUC_FPR10", colnames(df2))
+            cbind(
+                df1,
+                df2
+            )
+        }
+    )
+)
+rownames(aucs_1e) = names_map[rownames(aucs_1e)]
+write.csv(signif(aucs_1e, 2), file = file)

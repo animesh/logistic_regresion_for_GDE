@@ -1,5 +1,5 @@
-## Use Seurat 2.3.4
-## source("http://bit.ly/archived-seurat")
+## Needs Seurat 2.3.4
+setwd("~/ebecht_working/logistic_regression/NYMP_2018/embryo")
 
 #Load and parse data ----------------------------------------------------
 library(MultiAssayExperiment)

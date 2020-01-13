@@ -139,3 +139,27 @@ dev.off()
 
 sup_table_1=sapply(l,function(x){x[paper_genes,"p_val_adj"]})
 rownames(sup_table_1)=paper_genes
+
+## Jaccard heatmap
+combs = combn(names(test2), 2, simplify = FALSE)
+Jaccard = matrix(nrow = length(test2), ncol = length(test2), data = NA, dimnames = list(names(test2), names(test2)))
+for(m1 in names(test2)){
+    for(m2 in names(test2)){
+        n = length(intersect(test2[[m1]], test2[[m2]]))
+        m = length(unique(c(test2[[m1]], test2[[m2]])))
+        Jaccard[m1, m2] = n/m
+    }
+}
+
+png("Jaccard matrix.png", height = 2000, width = 2000, res = 300)
+par(mar = c(4, 6, 6, 4))
+breaks = seq(0, 1, by = 0.01)
+cols = colorRampPalette(c("white","black"))(100)
+imageWrapper(Jaccard, breaks = breaks, col = cols)
+rect(breaks[-length(breaks)], -0.4, breaks[-1], -0.5, xpd = NA, col = cols, border = cols)
+rect(breaks[1], -0.4, breaks[length(breaks)], -0.5, xpd = NA, border = "black")
+text(y = -0.5, x = 0, pos = 1, labels = 0, xpd = NA)
+text(y = -0.5, x = 1, pos = 1, labels = 1, xpd = NA)
+text(y = -0.5, x = 0.5, pos = 1, labels = 0.5, xpd = NA)
+text(y = -0.4, x = 0.5, pos = 3, labels = "Jaccard similarity coefficient", xpd = NA, font = 2)
+dev.off()
