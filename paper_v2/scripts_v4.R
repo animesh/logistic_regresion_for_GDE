@@ -22,8 +22,8 @@ tp=function(hexcol,tp="44"){
 ####################
 
 ## Load results of the CD45 analysis, based on a script adapted from https://github.com/pachterlab/NYMP_2018/blob/master/10x_example-logR/10x_example_logR-TCC_notebook.ipynb
-load("~/ebecht_working/logistic_regression/NYMP_2018/10x_example-logR/rdata/Fig2.RData")
-load("~/ebecht_working/logistic_regression/NYMP_2018/10x_example-logR/rdata/Fig2_allcells.RData")
+load("./NYMP_2018/10x_example-logR/rdata/Fig2.RData")
+load("./NYMP_2018/10x_example-logR/rdata/Fig2_allcells.RData")
 
 ## Reshape data
 ps=lapply(ps,t)
@@ -114,7 +114,7 @@ dev.off()
 ####################
 
 ## Load results. The script that generated them is in logistic_regression/figshare/EB/simulations_analysis_clean.R
-splatter_dir="~/ebecht_working/logistic_regression/figshare/splatter/"
+splatter_dir="./figshare/splatter/"
 file=file.path(splatter_dir,"rds","simulations_pre_degs.rds")
 ## files=list.files(file.path(splatter_dir,"rds/"),full.names=FALSE,include.dirs=FALSE)
 ## files=files[!grepl("simulations_pre_degs.rds",files)]

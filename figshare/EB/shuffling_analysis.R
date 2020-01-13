@@ -22,9 +22,9 @@ library(abind)
 
 options("mc.cores"=1L,scipen=999) ## I have had issues running this script in parallel (memory issues, forking crashes) so I advise against mc.cores>1. scipen=999 is used to avoid exponential notation when converting numerics with as.character()
 
-setwd("~/ebecht_working/logistic_regression/figshare/EB/")
-source("~/ebecht_working/logistic_regression/wrappers.R")
-splatter_dir="~/ebecht_working/logistic_regression/figshare/splatter"
+setwd("./figshare/EB/")
+source("./wrappers.R")
+splatter_dir="./figshare/splatter"
 
 ####################
 ## 1. Load and harmonize input.
@@ -35,17 +35,17 @@ splatter_dir="~/ebecht_working/logistic_regression/figshare/splatter"
 ##
 
 ## Load data
-X=readMM("~/ebecht_working/logistic_regression/NYMP_2018/10x_example-logR/matrix.tcc.mtx")
+X=readMM("./NYMP_2018/10x_example-logR/matrix.tcc.mtx")
 colnames(X)=1:ncol(X)-1
 
 ## Mapping of TCCs to transcripts (EC_dict), TX numbers to ensembl gene transcript identifiers (TX_TO_ENST), to ensembl gene identifiers (TX_TO_ENSG)
-TX_TO_ENST=read.csv("~/ebecht_working/logistic_regression/NYMP_2018/10x_example-logR/TX_to_ENST.csv",sep="\t",stringsAsFactors=FALSE,header=FALSE)
+TX_TO_ENST=read.csv("./NYMP_2018/10x_example-logR/TX_to_ENST.csv",sep="\t",stringsAsFactors=FALSE,header=FALSE)
 TX_TO_ENST=setNames(TX_TO_ENST[,2],TX_TO_ENST[,1])
-TX_TO_ENSG=read.csv("~/ebecht_working/logistic_regression/NYMP_2018/10x_example-logR/TX_to_ENSG.csv",sep="\t",stringsAsFactors=FALSE,header=FALSE)
+TX_TO_ENSG=read.csv("./NYMP_2018/10x_example-logR/TX_to_ENSG.csv",sep="\t",stringsAsFactors=FALSE,header=FALSE)
 TX_TO_ENSG=setNames(TX_TO_ENSG[,2],TX_TO_ENSG[,1])
-ENSG_to_name=read.csv("~/ebecht_working/logistic_regression/NYMP_2018/10x_example-logR/ENSG_to_name.csv",sep="\t",stringsAsFactors=FALSE,header=FALSE)
+ENSG_to_name=read.csv("./NYMP_2018/10x_example-logR/ENSG_to_name.csv",sep="\t",stringsAsFactors=FALSE,header=FALSE)
 ENSG_to_name=setNames(ENSG_to_name[,2],ENSG_to_name[,1])
-EC_dict=read.csv("~/ebecht_working/logistic_regression/NYMP_2018/10x_example-logR/matrix.ec",sep="\t",stringsAsFactors=FALSE,header=FALSE)
+EC_dict=read.csv("./NYMP_2018/10x_example-logR/matrix.ec",sep="\t",stringsAsFactors=FALSE,header=FALSE)
 EC_dict=setNames(strsplit(EC_dict[,2],","),EC_dict[,1])
 ## Mapping TCCs to gene names and vice versa
 EC_to_gene_names=stack(EC_dict,stringsAsFactors=FALSE)
@@ -68,13 +68,13 @@ EC_to_gene_names=unlist(EC_to_gene_names[tccs])
 ##
 ## EMTAB3929 (Petropoulos et al)
 ##
-EMTAB3929=readRDS("~/ebecht_working/logistic_regression/data/EMTAB3929.rds") ## http://imlspenticton.uzh.ch/robinson_lab/conquer/data-mae/EMTAB3929.rds
+EMTAB3929=readRDS("./data/EMTAB3929.rds") ## http://imlspenticton.uzh.ch/robinson_lab/conquer/data-mae/EMTAB3929.rds
 EMTAB3929=EMTAB3929[,grepl("E3",colnames(EMTAB3929)[["tx"]])|grepl("E4",colnames(EMTAB3929)$tx)] ## We compare E3 vs E4
 
 ##
 ## GSE64016
 ##
-GSE64016=readRDS("~/ebecht_working/logistic_regression/data/GSE64016.rds") ## http://imlspenticton.uzh.ch/robinson_lab/conquer/data-mae/GSE64016.rds
+GSE64016=readRDS("./data/GSE64016.rds") ## http://imlspenticton.uzh.ch/robinson_lab/conquer/data-mae/GSE64016.rds
 GSE64016=GSE64016[,colData(GSE64016)$source_name_ch1%in%c("single H1-Fucci cell sorted from G1 phase of the cell cycle only","single H1-Fucci cell sorted from S phase of the cell cycle only")] ## We compare cells at the G1 vs S phases of the cell cycle
 
 ## List datasets and harmonize. List of list. Sublists elements are 1) xp : expression matrix, 2) grps : vector of cell types, 3) name : dataset's name, 4) t2g: Transcript (or TCCs) to gene mapping
@@ -630,56 +630,6 @@ if(FALSE){
         freqs=cut(freqs,breaks=breaks,include.lowest=TRUE)
         names(colors)=levels(freqs)
         df=cbind(df,freqs)
-
-        ## ## TMP
-        ## png("~/test.png",height=4000,width=6000,res=300)
-        ## par(mfrow=c(2,3))
-        ## scrbl=sample(1:nrow(df))
-        ## library(matlab)
-        ## sapply(combn(colnames(df),2,simplify=FALSE),function(x){
-        ##     plot(
-        ##     (df[[x[1]]])[scrbl],
-        ##     (df[[x[2]]])[scrbl],
-        ##     xlab=x[1],
-        ##     ylab=x[2],
-        ##     pch=16,
-        ##     col=toColors_continuous(log10(freqs),palette=jet.colors(100))[scrbl]
-        ##     )
-        ##     abline(a=0,b=1,lty=2)
-        ## })
-        ## dev.off()
-        ## ## /TMP
-
-        ## freqs=cut(freqs,breaks=quantile(freqs,seq(0,1,length.out=n_strata)),include.lowest=TRUE)
-
-        ## ## TMP
-        ## g=sample(rownames(data[[ds]]$sca[rowData(data[[ds]]$sca)[,paste0("binary_",cutoff)],])[as.character(freqs)%in%"[0.001,0.01]"],16)
-        ## sca=data[[ds]]$sca[g,]
-        ## colnames(sca)=paste0("C",1:ncol(sca))
-        ## gene_data=as.data.table(rowData(sca))
-        ## cell_data=as.data.table(colData(sca))
-        ## cell_data[,"Cell":=colnames(sca)]
-        
-        ## dt=data.table(assays(sca)$tpm,keep.rownames="transcript")
-        ## dt_long=suppressWarnings(melt(dt,variable.name="Cell",value.name="tpm"))
-        ## dt_long=merge(gene_data,dt_long,by="transcript")
-        ## dt_long=merge(cell_data,dt_long,by="Cell")
-
-        ## df_tmp=cbind(df[names(data[[ds]]$degs[[cutoff]]$lr_noCDR_noscrbl$tx)%in%g,],transcript=g)
-        ## df_tmp=cbind(df_tmp,label=apply(df_tmp,1,function(x){
-        ##     paste0("p[",colnames(df_tmp)[1:4],"]=",signif(as.numeric(x[1:4]),2),collapse="\n")
-        ## }))
-        ## dt_long=merge(dt_long,df_tmp,by.x="transcript",by.y="transcript")
-
-        ## ggplot(dt_long, aes(x = Group, y = log10(1+tpm))) + 
-        ##     geom_violin() + 
-        ##     geom_jitter(data=dt_long, aes(x = Group, y = log10(1+tpm), color=log10(CDR))) +
-        ##     facet_wrap(~transcript,scales="free") +
-        ##     theme_bw() +
-        ##     xlab(paste0(unique(gene_data$gene_ensembl),collapse="/")) +
-        ##     geom_text(data=df_tmp,aes(x=Inf,y=Inf,label=label),hjust=1,vjust=1)  +
-        ##     scale_colour_distiller(palette="RdYlBu",type="seq")
-        ## ## /TMP
 
         ## Compute frequency of discovery for each possible p-value threshold
         df=suppressWarnings(melt.data.table(df))

@@ -28,19 +28,19 @@ library(patchwork)
 
 options("mc.cores"=8)
 
-setwd("~/ebecht_working/logistic_regression/figshare/EB/")
+setwd("./figshare/EB/")
 
 ####################
 ## 1. Load and harmonize input
 ####################
 
 ## Load wrappers to run LR & MAST
-source("~/ebecht_working/logistic_regression/wrappers.R")
+source("./wrappers.R")
 ## Adapted from: https://github.com/pachterlab/NYMP_2018/blob/master/simulations/RSEM/R/roc_helpers.R
-source("~/ebecht_working/logistic_regression/NYMP_2018/simulations/RSEM/R/roc_helpers.R")
+source("./NYMP_2018/simulations/RSEM/R/roc_helpers.R")
 
 ## Base dir for simulations
-splatter_dir="~/ebecht_working/logistic_regression/figshare/splatter"
+splatter_dir="./figshare/splatter"
 ## Downloaded from: https://figshare.com/articles/Single_Cell_RNA-Seq_Simulations_for_Ntranos_Yi_et_al_2019/7108364
 splat_authors=readRDS(file.path(splatter_dir,"splat.rds"))
 ## Downloaded from: https://figshare.com/articles/Single_Cell_RNA-Seq_Simulations_for_Ntranos_Yi_et_al_2019/7108364

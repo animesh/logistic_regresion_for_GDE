@@ -24,17 +24,17 @@
     options(mc.cores=8L)
 
     ## Load wrappers to run LR & MAST
-    source("~/ebecht_working/logistic_regression/wrappers.R")
+    source("./wrappers.R")
 
     ## Adapted from: https://github.com/pachterlab/NYMP_2018/blob/master/simulations/RSEM/R/roc_helpers.R
-    source("~/ebecht_working/logistic_regression/NYMP_2018/simulations/RSEM/R/roc_helpers.R")
+    source("./NYMP_2018/simulations/RSEM/R/roc_helpers.R")
 
     ## Get transcript to gene mapping
-    splatter_dir="~/ebecht_working/logistic_regression/figshare/splatEstimate"
-    t2g=readRDS(file=file.path("~/ebecht_working/logistic_regression/figshare/splatter/","t2g.rds"))
+    splatter_dir="./figshare/splatEstimate"
+    t2g=readRDS(file=file.path("./figshare/splatter/","t2g.rds"))
     rownames(t2g)=t2g$ensembl_transcript_id
 
-    params_dir="~/ebecht_working/logistic_regression/figshare/splatEstimate/rds"
+    params_dir="./figshare/splatEstimate/rds"
     dir.create(params_dir,showWarnings=FALSE)
 
     if(FALSE){
@@ -69,7 +69,7 @@
         
     }
     
-    files=list.files("~/ebecht_working/logistic_regression/figshare/splatEstimate/input",full.names=TRUE)
+    files=list.files("./figshare/splatEstimate/input",full.names=TRUE)
     if(FALSE){
         for(file in files){
 
@@ -490,5 +490,4 @@
         }
     )
     
-    ebeep("splatEstimate")
 }
