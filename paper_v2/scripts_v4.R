@@ -210,19 +210,20 @@ all_sim=sapply(
         colnames(df)=c("DE","method","p")
         df[,simulation:=rep(x$name,nrow(df))]
         df=split(df,as.character(df$method))
-
+        
         ## For each method, for each p-value threshold, compute TPR and FPR
         df=lapply(df,function(y){
             y[,q:=p.adjust(p,method="fdr")]
             y[,n:=nrow(.SD),by=p]
-
             y[,TPR:=sum(.SD$DE),by=p]
             y[,FPR:=sum(!.SD$DE),by=p]
             setorder(y,p)
             y=y[!duplicated(p),]
             y=y[,n:=cumsum(y$n)]
+            y=y[,FDR:=cumsum(y$FPR)/(cumsum(y$FPR)+cumsum(y$TPR))]
             y=y[,TPR:=cumsum(y$TPR)/TP_max]
             y=y[,FPR:=cumsum(y$FPR)/TN_max]
+
             y
         })
         df=do.call(rbind,df)
@@ -277,19 +278,20 @@ file=file.path("./graphs/table_1a.csv")
 write.csv(aucs_1a, file)
 
 
-p3=ggplot(data=df3,aes(x=FPR,y=TPR,linetype=method,colour=method,group=method)) +
+p3=ggplot(data=df3,aes(x=FDR,y=TPR,linetype=method,colour=method,group=method)) +
     geom_path() +
-    xlab("FPR") +
+    xlab("FDR") +
     ylab("TPR") +
     theme_bw() +
-    xlim(0,1) +
     ylim(0,1) +
-    geom_abline(intercept=0,slope=1,linetype="dashed") +
+    ## geom_abline(intercept=0.05,slope=1,linetype="dashed") +
+    geom_vline(xintercept = 0.05, linetype = "dashed") +
     ## ggtitle("Simulations: ROC curve") +
     ##theme(legend.position = "none") +
     scale_colour_manual(values=colors) +
     scale_linetype_manual(values=linetypes) +
-    geom_point(data=df3ag,aes(x=FPR,y=TPR,colour=method,group=method))
+    geom_point(data=df3ag,aes(x=FDR,y=TPR,colour=method,group=method)) +
+    scale_x_sqrt()
 
 pdf("./graphs/1A.pdf",height=3.5,width=5)
 p3
@@ -315,7 +317,7 @@ df=lapply(
         ##     lr_noCDR_scrbl=data[[ds]]$degs[[as.character(cutoff)]]$lr_noCDR_scrbl$gn,
         ##     mast_CDR_scrbl=data[[ds]]$degs[[as.character(cutoff)]]$mast_CDR_scrbl$gn
         ## )
-
+        
         df=data.table(
             lr_noscrbl=data[[ds]]$degs[[cutoff]]$lr_noCDR_noscrbl,
             lr_scrbl=data[[ds]]$degs[[cutoff]]$lr_noCDR_scrbl,
@@ -643,20 +645,21 @@ plots=lapply(
 
         p2 <- ggplot(
             data = fdrs,
-            aes(x = FalsePositiveRate , y = sensitivity, colour=Method, linetype=Method)
+            aes(x = actual_FDR , y = sensitivity, colour=Method, linetype=Method)
         ) +
             scale_colour_manual(values=colors) +
             scale_linetype_manual(values=linetype) +
             geom_path(size = .5) +
             ## geom_abline(intercept=0,slope=1,linetype="solid",col="gray") +
             theme_bw(12) +
-            coord_fixed() +
+            ## coord_fixed() +
             scale_x_sqrt() +
             ggtitle(names_map[x$name]) +
             theme(plot.title = element_text(hjust = 0.5)) +
-            xlab("FPR") +
-            ylab("TPR")
-
+            xlab("FDR") +
+            ylab("TPR") +
+            geom_vline(xintercept = 0.05, linetype = "dashed")
+        
         ## zoomtheme <- theme(legend.position="none", axis.line=element_blank(),axis.text.x=element_blank(),
         ##     axis.text.y=element_blank(),axis.ticks=element_blank(),
         ##     axis.title.x=element_blank(),axis.title.y=element_blank(),
